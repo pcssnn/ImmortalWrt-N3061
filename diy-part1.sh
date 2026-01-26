@@ -1,8 +1,13 @@
 #!/bin/bash
-# 这就是“进货单”，专门去下载官方源里没有的插件
+# diy-part1.sh
 
-# 1. 下载 FUjr 修改版的 QModem (支持 RM500Q 等模组管理)
+# --- 重点：下载您指定的 FUjr 版 QModem ---
+# 这行代码会去下载 FUjr 的项目代码
 git clone https://github.com/FUjr/luci-app-qmodem package/luci-app-qmodem
 
-# 2. 短信功能 (QModem通常自带简易短信，这是更强大的专用工具，作为备份)
+# --- 补充：短信工具 ---
+# QModem 自带短信管理，但为了防止不兼容，添加一个通用的 SMS 工具作为备份
 git clone https://github.com/4IceG/luci-app-sms-tool package/luci-app-sms-tool
+
+# 添加其他可能需要的依赖
+# echo 'src-git packages https://github.com/immortalwrt/packages.git' >>feeds.conf.default
