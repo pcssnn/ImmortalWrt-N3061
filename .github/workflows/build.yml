@@ -3,7 +3,7 @@ name: Build ImmortalWrt for N3061
 on:
   repository_dispatch:
   workflow_dispatch:
-  # 改为月中触发 (北京时间每月 16 号凌晨 2 点)
+  # 触发时间: UTC 15号 18:00 = 北京时间 16号 凌晨 02:00
   schedule:
     - cron: '0 18 15 * *'
 
@@ -12,6 +12,7 @@ env:
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   TZ: Asia/Shanghai
 
@@ -37,21 +38,23 @@ jobs:
     - name: Clone source code
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        # 确保 DIY 脚本能正确链接
+        # 链接 DIY 脚本
+        [ -e $DIY_P1_SH ] && cp $DIY_P1_SH openwrt/
         [ -e $DIY_P2_SH ] && cp $DIY_P2_SH openwrt/
 
     - name: Update & Install feeds
-      run: cd openwrt && ./scripts/feeds update -a && ./scripts/feeds install -a
+      run: |
+        [ -e openwrt/$DIY_P1_SH ] && chmod +x openwrt/$DIY_P1_SH && cd openwrt && ./$DIY_P1_SH
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
     - name: Load custom configuration
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         cd openwrt
-        # 自动注入修改 IP 的命令 (192.168.66.1)
-        echo "sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_generate" >> $DIY_P2_SH
-        chmod +x $DIY_P2_SH
-        ./$DIY_P2_SH
-        # 强制应用你的 .config 配置
+        [ -e $DIY_P2_SH ] && chmod +x $DIY_P2_SH && ./$DIY_P2_SH
+        # 强制应用配置
         make defconfig
 
     - name: Download package
@@ -96,10 +99,11 @@ jobs:
         tag_name: ${{ env.FILE_DATE }}
         name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
         body: |
-          ### 🤖 月中自动更新 (Monthly Build)
+          ### 🤖 N3061 定制固件 (纯净增强版)
           - 📅 构建时间: ${{ env.FILE_DATE }}
-          - 🌐 默认地址: 192.168.66.1
-          - 🧩 核心功能: 全功能 LuCI 界面, 5G 模组支持, 虚拟化增强
+          - 🌐 管理地址: 192.168.66.1
+          - 🚀 核心功能: 5G(QModem), Wi-Fi热点(MT7922), HomeProxy, Tailscale, AdGuard
+          - 📦 包含 OPKG 基础包, 无 Docker
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
