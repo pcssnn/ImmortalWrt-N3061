@@ -3,7 +3,7 @@ name: Build ImmortalWrt for N3061
 on:
   repository_dispatch:
   workflow_dispatch:
-  # 触发时间: UTC 15号 18:00 = 北京时间 16号 凌晨 02:00
+  # 北京时间每月 16 号凌晨 2 点触发
   schedule:
     - cron: '0 18 15 * *'
 
@@ -43,9 +43,11 @@ jobs:
         [ -e $DIY_P2_SH ] && cp $DIY_P2_SH openwrt/
 
     - name: Update & Install feeds
+      # [修复] 修正了执行逻辑，去掉了多余的 cd 命令
       run: |
-        [ -e openwrt/$DIY_P1_SH ] && chmod +x openwrt/$DIY_P1_SH && cd openwrt && ./$DIY_P1_SH
         cd openwrt
+        chmod +x $DIY_P1_SH
+        ./$DIY_P1_SH
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
@@ -53,7 +55,8 @@ jobs:
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         cd openwrt
-        [ -e $DIY_P2_SH ] && chmod +x $DIY_P2_SH && ./$DIY_P2_SH
+        chmod +x $DIY_P2_SH
+        ./$DIY_P2_SH
         # 强制应用配置
         make defconfig
 
@@ -99,11 +102,10 @@ jobs:
         tag_name: ${{ env.FILE_DATE }}
         name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
         body: |
-          ### 🤖 N3061 定制固件 (纯净增强版)
+          ### 🤖 N3061 定制固件 (修复版)
           - 📅 构建时间: ${{ env.FILE_DATE }}
           - 🌐 管理地址: 192.168.66.1
-          - 🚀 核心功能: 5G(QModem), Wi-Fi热点(MT7922), HomeProxy, Tailscale, AdGuard
-          - 📦 包含 OPKG 基础包, 无 Docker
+          - 🚀 修复内容: 修正 QModem 下载地址，修复编译脚本错误
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
