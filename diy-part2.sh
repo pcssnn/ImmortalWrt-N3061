@@ -1,21 +1,25 @@
 #!/bin/bash
-# diy-part2.sh - 研凌 N3061 PVE 最终优化版
+#
+# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
+# Description: OpenWrt DIY script part 2 (After Update feeds)
+#
 
-# --- 1. 基础网络设置 ---
-# 修改默认 IP 为 192.168.66.1
+# --- 1. 修改默认 IP 为 192.168.66.1 ---
+# (既然写在这里了，YAML 里那行自动注入的命令虽然重复但不会报错，可以放心保留)
 sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_generate
 
-# 保持主机名为 ImmortalWrt (满足你的验证需求)
-sed -i 's/hostname=.all/hostname="ImmortalWrt"/g' package/base-files/files/bin/config_generate
+# --- 2. 引入外部插件源码 (进货) ---
+# 下载 FUjr 版 QModem 管理界面 (解决你找不到菜单的问题)
+git clone https://github.com/FUjr/luci-app-qmodem.git package/new/luci-app-qmodem
 
-# --- 2. PVE 虚拟机稳定性补丁 ---
-# 针对 N3061 使用的 i3-10110U 平台，优化 PCIe 直通驱动加载
-# 解决你之前提到的 MT7922/AX210 直通可能导致的系统挂起问题
-echo "options xhci_hcd quirks=0x8000" >> package/base-files/files/etc/modprobe.d/pve-fix.conf
+# 下载 iStoreOS 同款 Argon 主题 & 设置插件
+git clone https://github.com/jerrykuku/luci-theme-argon.git package/new/luci-theme-argon
+git clone https://github.com/jerrykuku/luci-app-argon-config.git package/new/luci-app-argon-config
 
-# --- 3. 增强 QModem 短信兼容性 ---
-# 确保短信工具能正确识别移远模块的 AT 端口
-sed -i 's/ttyUSB2/ttyUSB3/g' package/base-files/files/bin/config_generate 2>/dev/null || true
-
-# --- 4. 修改 SSH 欢迎横幅 ---
-sed -i "s/OpenWrt /ImmortalWrt build $(date +%Y.%m.%d) @ N3061 /g" package/base-files/files/assets/banner
+# --- 3. 设置默认主题为 Argon ---
+# 这一步确保你刷机后看到的直接就是紫色的 Argon 界面，而不是默认的 Bootstrap
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
