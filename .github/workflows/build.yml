@@ -43,7 +43,7 @@ jobs:
         [ -e $DIY_P2_SH ] && cp $DIY_P2_SH openwrt/
 
     - name: Update & Install feeds
-      # [修复] 修正了执行逻辑，去掉了多余的 cd 命令
+      # [修复] 修正了执行逻辑
       run: |
         cd openwrt
         chmod +x $DIY_P1_SH
@@ -102,10 +102,11 @@ jobs:
         tag_name: ${{ env.FILE_DATE }}
         name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
         body: |
-          ### 🤖 N3061 定制固件 (修复版)
-          - 📅 构建时间: ${{ env.FILE_DATE }}
-          - 🌐 管理地址: 192.168.66.1
-          - 🚀 修复内容: 修正 QModem 下载地址，修复编译脚本错误
+          ### ?? N3061 全能纯有线版 (iStore + Docker)
+          - ?? 构建时间: ${{ env.FILE_DATE }}
+          - ?? 管理地址: 192.168.66.1
+          - ?? **配置**: 2GB 空间, iStore 商店, Docker, 5G(QModem)
+          - ? **精简**: 移除 Wi-Fi 驱动，专注有线性能
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
