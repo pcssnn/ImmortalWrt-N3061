@@ -3,7 +3,6 @@ name: Build ImmortalWrt for N3061
 on:
   repository_dispatch:
   workflow_dispatch:
-  # 北京时间每月 16 号凌晨 2 点触发
   schedule:
     - cron: '0 18 15 * *'
 
@@ -38,7 +37,6 @@ jobs:
     - name: Clone source code
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        # 链接 DIY 脚本
         [ -e $DIY_P1_SH ] && cp $DIY_P1_SH openwrt/
         [ -e $DIY_P2_SH ] && cp $DIY_P2_SH openwrt/
 
@@ -56,7 +54,6 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
-        # 强制应用配置
         make defconfig
 
     - name: Download package
@@ -101,11 +98,11 @@ jobs:
         tag_name: ${{ env.FILE_DATE }}
         name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
         body: |
-          ### 🤖 N3061 旗舰稳定版 (AX210 AP)
+          ### 🤖 N3061 完美修复版 (AX210+5G)
           - 📅 构建时间: ${{ env.FILE_DATE }}
-          - 🌐 管理地址: 192.168.66.1
-          - 📶 **无线**: AX210 (满血版Hostapd, 支持稳定热点/DAWN)
-          - 🐳 **核心**: Docker, iStore, 2GB 空间, 5G(QModem)
+          - 🌐 管理地址: 192.168.66.1 (默认中文)
+          - 📦 **修复**: iStore, AdGuardHome, Tailscale, 简体中文
+          - 📶 **核心**: AX210 (Wpad-OpenSSL), 5G (QModem)
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
