@@ -1,21 +1,27 @@
 #!/bin/bash
 # diy-part2.sh
 
-# --- 1. 设置管理 IP ---
+# --- 1. 设置 IP ---
 sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_generate
 
-# --- [暴力修复] 强制锁定简体中文 ---
-# 直接修改 LuCI 的配置文件，把 fallback 语言设为中文
+# --- [关键修复] 强制升级 Golang (Go 语言编译器) ---
+# Tailscale 和 AdGuardHome 需要新版 Go 才能编译成功，否则会静默失败
+rm -rf feeds/packages/lang/golang
+git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
+
+# --- [关键修复] iStore 应用商店 (手动集成) ---
+# 手动拉取 iStore 核心库，确保不依赖外部源，100% 成功
+# 注意：先删除可能存在的冲突目录
+rm -rf package/istore
+git clone https://github.com/linkease/istore.git package/istore
+git clone https://github.com/linkease/istore-ui.git package/istore-ui
+
+# --- 2. 暴力锁定简体中文 ---
+# 强制修改 LuCI 默认配置，不再依赖菜单选择
 sed -i 's/default "en"/default "zh_cn"/' feeds/luci/modules/luci-base/root/etc/config/luci
-# 强制修改编译生成的默认语言包设置
 sed -i 's/luci-i18n-base-en/luci-i18n-base-zh-cn/g' package/base-files/files/bin/config_generate
 
-# --- 2. 界面美化 (Argon) ---
+# --- 3. 界面美化 (Argon) ---
 git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-
-# --- 3. [修正] 移除可能存在的冲突文件 ---
-# 为了防止 iStore 安装失败，清理一下可能冲突的 golang 依赖（如果存在）
-rm -rf feeds/packages/lang/golang
-git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
