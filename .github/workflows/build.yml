@@ -90,19 +90,3 @@ jobs:
       with:
         name: ImmortalWrt_N3061${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}/*.img.gz
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v2
-      if: steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        tag_name: ${{ env.FILE_DATE }}
-        name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
-        body: |
-          ### ?? N3061 终极修正版 (Kiddin9源)
-          - ?? 构建时间: ${{ env.FILE_DATE }}
-          - ?? 管理地址: 192.168.66.1 (强制中文)
-          - ??? **修复**: iStore, Tailscale, KMS, 中文语言包
-          - ?? **硬件**: AX210 (Wpad-OpenSSL), 5G RM500Q
-        files: ${{ env.FIRMWARE }}/*.img.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
