@@ -4,14 +4,22 @@
 # --- 1. 设置管理 IP ---
 sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_generate
 
-# --- [核心修复] 强制升级 Golang 编译器 ---
-# 解决 "requires go >= 1.22.5" 报错
-# 删除源码自带的旧版 Go，拉取 Kenzo 维护的最新版 Go
+# =========================================================
+# --- [重点修复] 强制升级 Golang (Golang Fix Ultimate) ---
+# =========================================================
+# 1. 删除旧版 (源码自带的 1.21)
 rm -rf feeds/packages/lang/golang
+
+# 2. 拉取新版 (Kenzo 维护的 1.23+)
 git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
 
+# 3. 【新增关键步骤】强制重新安装/索引 Golang ！！！
+# 这一步会告诉编译系统：Golang 已经变了，请使用新版本。
+./scripts/feeds install -p packages -f golang
+
+# =========================================================
+
 # --- [手动集成] iStore 应用商店 ---
-# 手动拉取源码，防止因软件源问题导致安装失败
 rm -rf package/istore
 git clone https://github.com/linkease/istore.git package/istore
 git clone https://github.com/linkease/istore-ui.git package/istore-ui
