@@ -7,6 +7,7 @@ on:
     - cron: '0 18 15 * *'
 
 env:
+  # 👇 这就是您要的“强中国优化”源 (ImmortalWrt)
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
@@ -91,16 +92,20 @@ jobs:
         name: ImmortalWrt_N3061${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}/*.img.gz
 
-    # --- 👇 找回的功能：自动发布到 Release 页面 👇 ---
+    # 👇 自动发布功能 (必须配合第一步的权限设置)
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: ${{ env.FILE_DATE }}
-        name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
+        tag_name: N3061-${{ env.FILE_DATE }}
+        name: 🚀 N3061 强国优化版 ${{ env.FILE_DATE }}
         body: |
-          ### 🤖 N3061 最终绝杀版
-          - 📅 构建时间: ${{ env.FILE_DATE }}
-          - 🌐 IP: 192.168.66.1 | 密: password
-          - 🛠️ **修复**: 强制中文、Go编译修复、iStore集成
-          -
+          ### 🇨🇳 N3061 终极修正版
+          - 📅 时间: ${{ env.FILE_DATE }}
+          - 🌐 默认IP: 192.168.66.1
+          - 🔑 密码: password
+          - 🛠️ **修复**: 强制中文启动、GitHub Action发布权限修复
+          - 📦 **插件**: Docker, iStore, Tailscale, AdGuardHome
+        files: ${{ env.FIRMWARE }}/*.img.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
