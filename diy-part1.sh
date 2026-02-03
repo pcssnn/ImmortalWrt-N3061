@@ -2,7 +2,7 @@
 # diy-part1.sh
 
 # --- 1. 软件源配置 ---
-# Kenzo/Small 包含 Tailscale 和 AdGuardHome，且下载稳定
+# Kenzo 源配合 ImmortalWrt 兼容性最好
 echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
 echo 'src-git small https://github.com/kenzok8/small' >> feeds.conf.default
 
