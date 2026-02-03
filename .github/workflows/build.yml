@@ -91,7 +91,7 @@ jobs:
         name: ImmortalWrt_N3061${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}/*.img.gz
 
-    # --- ?? 就是这一步！找回了自动发布功能 ?? ---
+    # --- 👇 找回的功能：自动发布到 Release 页面 👇 ---
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
@@ -99,19 +99,8 @@ jobs:
         tag_name: ${{ env.FILE_DATE }}
         name: N3061-ImmortalWrt-${{ env.FILE_DATE }}
         body: |
-          ### ?? N3061 终极修正版 (sbwml源修复Go版本)
-          - ?? 构建时间: ${{ env.FILE_DATE }}
-          - ?? 管理 IP: 192.168.66.1
-          - ???? 语言: **强制简体中文**
-          - ??? **功能清单**:
-            - ? **iStore 商店** (手动集成，防丢失)
-            - ? **Docker** (Dockey 可视化面板)
-            - ? **AdGuard Home** (去广告，已修复编译报错)
-            - ? **Tailscale** (内网穿透)
-            - ? **KMS 激活** (Windows/Office 激活)
-          - ?? **硬件驱动**:
-            - ? **AX210** (满血版驱动 + DAWN 智能漫游)
-            - ? **5G RM500Q** (QModem 管理 + 双网负载均衡)
-        files: ${{ env.FIRMWARE }}/*.img.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ### 🤖 N3061 最终绝杀版
+          - 📅 构建时间: ${{ env.FILE_DATE }}
+          - 🌐 IP: 192.168.66.1 | 密: password
+          - 🛠️ **修复**: 强制中文、Go编译修复、iStore集成
+          -
