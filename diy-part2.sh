@@ -1,41 +1,53 @@
 #!/bin/bash
 # diy-part2.sh
 
-# --- 1. 网络设置 (管理 IP: 192.168.66.1) ---
+# --- 1. 管理 IP 设置 ---
 sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_generate
 
 # =========================================================
-# --- [核心修复] 强制升级 Golang (使用 sbwml 源) ---
-# 这是解决图 3333.jpg 报错 "go 1.21.11 < 1.22.5" 的终极方案
+# --- [绝杀 1] 物理删除冗余插件 (清理菜单) ---
 # =========================================================
+# 删除您不想要的“文件传输”和“自动重启”等插件源码
+# 这样它们绝对不会出现在菜单里
+rm -rf feeds/luci/applications/luci-app-filetransfer
+rm -rf feeds/luci/applications/luci-app-autoreboot
+rm -rf feeds/luci/applications/luci-app-ramfree
+rm -rf feeds/packages/utils/coremark
 
-# 1. 彻底删除源码自带的旧版 Go
+# =========================================================
+# --- [绝杀 2] 强制修复 Go 语言 (sbwml 源) ---
+# 解决 AdGuard/Tailscale 编译报错的唯一解
+# =========================================================
 rm -rf feeds/packages/lang/golang
-
-# 2. 拉取 sbwml 维护的高版本 Go (专治各种版本过低)
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
-
-# 3. 清理旧的编译缓存 (防止系统记住了旧版本)
 rm -rf package/feeds/packages/golang
-
-# 4. 强制重新安装并注册 Golang
 ./scripts/feeds install -p packages -f golang
 
 # =========================================================
-
-# --- [手动集成] iStore 应用商店 ---
-# 手动拉取源码，确保 100% 安装成功
+# --- [绝杀 3] 手动集成 iStore (防丢失) ---
+# =========================================================
 rm -rf package/istore
 git clone https://github.com/linkease/istore.git package/istore
 git clone https://github.com/linkease/istore-ui.git package/istore-ui
 
-# --- 2. 暴力锁定简体中文 ---
-# 修改 LuCI 配置文件默认语言
-sed -i 's/default "en"/default "zh_cn"/' feeds/luci/modules/luci-base/root/etc/config/luci
-# 修改固件生成脚本默认语言
-sed -i 's/luci-i18n-base-en/luci-i18n-base-zh-cn/g' package/base-files/files/bin/config_generate
+# =========================================================
+# --- [绝杀 4] 强制注入中文 (UCI 启动脚本) ---
+# 不再依赖源码替换，而是开机强制执行命令
+# =========================================================
+mkdir -p package/base-files/files/etc/uci-defaults
+cat > package/base-files/files/etc/uci-defaults/99-custom-settings <<EOF
+#!/bin/sh
+# 强制设置语言为简体中文
+uci set luci.main.lang=zh_cn
+# 强制设置主题为 Argon
+uci set luci.main.mediaurlbase=/luci-static/argon
+# 提交修改
+uci commit luci
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
-# --- 3. 界面美化 (Argon) ---
+# --- 界面美化 ---
 git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
