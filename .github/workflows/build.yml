@@ -1,15 +1,16 @@
-name: Build ImmortalWrt for N3061
+name: Build ImmortalWrt N3061 Pro
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    - cron: '0 18 15 * *'
+    # 每天北京时间早上 6:15 自动编译发布
+    - cron: '15 22 * * *'
 
 env:
-  # 👇 这就是您要的“强中国优化”源 (ImmortalWrt)
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: master
+  # 👇【关键】切换到 v23.05 稳定版，兼容性最好，不报错
+  REPO_BRANCH: openwrt-23.05
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -44,8 +45,6 @@ jobs:
     - name: Update & Install feeds
       run: |
         cd openwrt
-        chmod +x $DIY_P1_SH
-        ./$DIY_P1_SH
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
@@ -72,10 +71,6 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
-    - name: Check space usage
-      if: (!cancelled())
-      run: df -hT
-
     - name: Organize files
       id: organize
       if: steps.compile.outputs.status == 'success' && !cancelled()
@@ -85,27 +80,19 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      if: steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        name: ImmortalWrt_N3061${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE }}/*.img.gz
-
-    # 👇 自动发布功能 (必须配合第一步的权限设置)
+    # 👇 自动发布功能
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-${{ env.FILE_DATE }}
-        name: 🚀 N3061 强国优化版 ${{ env.FILE_DATE }}
+        tag_name: N3061-Pro-${{ env.FILE_DATE }}
+        name: N3061 全功能稳定版 ${{ env.FILE_DATE }}
         body: |
-          ### 🇨🇳 N3061 终极修正版
+          ### 🏆 N3061 Pro (v23.05 Stable)
           - 📅 时间: ${{ env.FILE_DATE }}
-          - 🌐 默认IP: 192.168.66.1
-          - 🔑 密码: password
-          - 🛠️ **修复**: 强制中文启动、GitHub Action发布权限修复
-          - 📦 **插件**: Docker, iStore, Tailscale, AdGuardHome
+          - 🌐 管理IP: 192.168.66.1
+          - 🇨🇳 **语言**: 简体中文
+          - 📦 **功能**: iStore, Docker, Tailscale, AdGuardHome, 5G驱动
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
