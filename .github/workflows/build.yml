@@ -1,16 +1,16 @@
-name: Build ImmortalWrt N3061 Pro
+name: Build ImmortalWrt N3061 Weekly
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    # 每天北京时间早上 6:15 自动编译发布
-    - cron: '15 22 * * *'
+    # 每周五北京时间凌晨 4:00 (UTC 20:00) 执行
+    - cron: '0 20 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # 👇【关键】切换到 v23.05 稳定版，兼容性最好，不报错
-  REPO_BRANCH: openwrt-23.05
+  # 使用 Master 分支，获取对 AX210 和新特性的最佳支持
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -80,19 +80,18 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # 👇 自动发布功能
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Pro-${{ env.FILE_DATE }}
-        name: N3061 全功能稳定版 ${{ env.FILE_DATE }}
+        tag_name: N3061-Weekly-${{ env.FILE_DATE }}
+        name: N3061 全功能周更版 ${{ env.FILE_DATE }}
         body: |
-          ### 🏆 N3061 Pro (v23.05 Stable)
-          - 📅 时间: ${{ env.FILE_DATE }}
-          - 🌐 管理IP: 192.168.66.1
-          - 🇨🇳 **语言**: 简体中文
-          - 📦 **功能**: iStore, Docker, Tailscale, AdGuardHome, 5G驱动
+          ### 🚀 N3061 Weekly Build
+          - 📅 更新频率: 每周一次
+          - 🌐 默认IP: 192.168.66.1
+          - 🇨🇳 **特性**: 强中国优化, iStore, Tailscale, ADG
+          - 📶 **无线**: 集成 AX210 全套固件 (AP/Mesh基础)
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
