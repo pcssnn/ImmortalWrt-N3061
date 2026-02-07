@@ -1,15 +1,15 @@
-name: Build ImmortalWrt N3061 Weekly
+name: Build ImmortalWrt N3061 Final
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    # 每周五北京时间凌晨 4:00 (UTC 20:00) 执行
-    - cron: '0 20 * * 5'
+    # 每周五 北京时间 20:00 (UTC 12:00) 自动编译
+    - cron: '0 12 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # 使用 Master 分支，获取对 AX210 和新特性的最佳支持
+  # ✅ 严格执行：Master 分支 (AX210 最佳支持)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -54,6 +54,7 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
+        # 自动补全依赖
         make defconfig
 
     - name: Download package
@@ -84,14 +85,9 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Weekly-${{ env.FILE_DATE }}
-        name: N3061 全功能周更版 ${{ env.FILE_DATE }}
+        tag_name: N3061-Final-${{ env.FILE_DATE }}
+        name: N3061 Master全汉化版 ${{ env.FILE_DATE }}
         body: |
-          ### 🚀 N3061 Weekly Build
-          - 📅 更新频率: 每周一次
-          - 🌐 默认IP: 192.168.66.1
-          - 🇨🇳 **特性**: 强中国优化, iStore, Tailscale, ADG
-          - 📶 **无线**: 集成 AX210 全套固件 (AP/Mesh基础)
-        files: ${{ env.FIRMWARE }}/*.img.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ### 🔥 N3061 Master 全功能 (100%中文)
+          - 📅 时间: ${{ env.FILE_DATE }}
+          - ⚡ **源**: 北大(PKU
