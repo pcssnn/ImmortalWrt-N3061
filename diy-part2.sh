@@ -6,11 +6,13 @@ sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_genera
 
 # =========================================================
 # --- [✅ 关键] 替换为国内镜像源 (北大源) ---
+# 刷机后 opkg 下载速度飞快
 # =========================================================
 sed -i 's/downloads.immortalwrt.org/mirrors.pku.edu.cn\/immortalwrt/g' package/base-files/files/bin/config_generate
 
 # =========================================================
 # --- [核心修复] Go 语言环境 (Master必须) ---
+# AdGuardHome 编译依赖
 # =========================================================
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
@@ -45,8 +47,7 @@ EOF
 chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
 # =========================================================
-# --- [✅ 零删减承诺] ---
-# 绝不删除 feeds/luci/applications/luci-app-filetransfer
-# 绝不删除 feeds/luci/applications/luci-app-autoreboot
-# 绝不删除 feeds/luci/applications/luci-app-ramfree
+# --- [✅ 零删减] ---
+# 严格执行您的要求：不删除任何系统默认插件
+# 备份、升级、重启、文件传输... 全部保留
 # =========================================================
