@@ -1,15 +1,15 @@
-name: Build N3061 Master Final
+name: Build N3061 Total Violent
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    # 每周五 北京时间 20:00 (UTC 12:00) 自动编译
+    # 每周五 20:00 自动编译
     - cron: '0 12 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ 核心：Master 分支 (AX210 最佳支持)
+  # ✅ Master 分支 (AX210 硬要求)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -54,7 +54,6 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
-        # 自动补全依赖
         make defconfig
 
     - name: Download package
@@ -85,17 +84,17 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Final-${{ env.FILE_DATE }}
-        name: N3061 Master全功能版 ${{ env.FILE_DATE }}
+        tag_name: N3061-Violent-${{ env.FILE_DATE }}
+        name: N3061 全员暴力版 (全源码拉取) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 N3061 Master 终极版
-          - 📅 时间: ${{ env.FILE_DATE }}
-          - ⚡ **国内源**: 集成北大(PKU)镜像，下载飞快
-          - 🔑 **激活**: KMS (vlmcsd) 自动激活
-          - 📶 **连接**: AX210满血驱动 + 5G短信/QModem
-          - 📦 **应用**: iStore, Docker, Tailscale, ADG, SFTP
-          - 🛠️ **完整**: 零阉割，保留系统所有默认插件(含备份/文件传输)
-          - 🇨🇳 **语言**: 全局强制简体中文
+          ### 🔥 N3061 暴力植入清单
+          - 🗡️ **iStore**: `linkease` 官方源码直拉
+          - 🗡️ **Docker**: `lisaac` 官方源码直拉
+          - 🗡️ **Tailscale**: `asvow` 源码直拉
+          - 🗡️ **AdGuard**: `rufengsuixing` 源码直拉
+          - 🗡️ **5G/SMS**: `FUjr` & `4IceG` 源码直拉
+          - 🚫 **NAS**: 已彻底剔除
+          - 🇨🇳 **语言**: 暴力强制汉化
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
