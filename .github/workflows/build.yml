@@ -1,4 +1,4 @@
-name: Build ImmortalWrt N3061 Final
+name: Build N3061 Master Final
 
 on:
   repository_dispatch:
@@ -9,7 +9,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ 严格执行：Master 分支 (AX210 最佳支持)
+  # ✅ 核心：Master 分支 (AX210 最佳支持)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -86,8 +86,16 @@ jobs:
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         tag_name: N3061-Final-${{ env.FILE_DATE }}
-        name: N3061 Master全汉化版 ${{ env.FILE_DATE }}
+        name: N3061 Master全功能版 ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 N3061 Master 全功能 (100%中文)
+          ### 🔥 N3061 Master 终极版
           - 📅 时间: ${{ env.FILE_DATE }}
-          - ⚡ **源**: 北大(PKU
+          - ⚡ **国内源**: 集成北大(PKU)镜像，下载飞快
+          - 🔑 **激活**: KMS (vlmcsd) 自动激活
+          - 📶 **连接**: AX210满血驱动 + 5G短信/QModem
+          - 📦 **应用**: iStore, Docker, Tailscale, ADG, SFTP
+          - 🛠️ **完整**: 零阉割，保留系统所有默认插件(含备份/文件传输)
+          - 🇨🇳 **语言**: 全局强制简体中文
+        files: ${{ env.FIRMWARE }}/*.img.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
