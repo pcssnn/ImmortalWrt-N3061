@@ -8,7 +8,6 @@ sed -i 's/192.168.1.1/192.168.66.1/g' package/base-files/files/bin/config_genera
 sed -i 's/downloads.immortalwrt.org/mirrors.pku.edu.cn\/immortalwrt/g' package/base-files/files/bin/config_generate
 
 # --- 3. 核心修复：Go 语言环境 ---
-# AdGuardHome 和 Tailscale 都需要这个
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang feeds/packages/lang/golang
 rm -rf package/feeds/packages/golang
@@ -18,19 +17,21 @@ rm -rf package/feeds/packages/golang
 mkdir -p package/base-files/files/etc/uci-defaults
 cat > package/base-files/files/etc/uci-defaults/99-custom-settings <<EOF
 #!/bin/sh
-# 强制中文
 uci set luci.main.lang=zh_cn
-# 强制皮肤
 uci set luci.main.mediaurlbase=/luci-static/argon
 uci set luci.themes.Argon=/luci-static/argon
-# 强制主机名
 uci set system.@system[0].hostname='N3061-Violent'
-# 提交
 uci commit luci
 uci commit system
 exit 0
 EOF
 chmod +x package/base-files/files/etc/uci-defaults/99-custom-settings
 
-# --- [注意] ---
-# 这里不删除任何系统默认文件，确保零删减
+# =========================================================
+# --- [⚠️ 关键修复：强制扩容双重保险] ---
+# 防止 .config 文件未生效导致的空间不足报错
+# 直接在编译前修改配置文件，强制设置为 4GB (4096MB)
+# =========================================================
+sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/d' .config
+echo 'CONFIG_TARGET_ROOTFS_PARTSIZE=4096' >> .config
+echo 'CONFIG_TARGET_KERNEL_PARTSIZE=128' >> .config
