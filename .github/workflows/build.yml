@@ -1,4 +1,4 @@
-name: Build N3061 Total Violent
+name: Build N3061 Final GoFix
 
 on:
   repository_dispatch:
@@ -9,7 +9,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ Master 分支 (AX210 硬要求)
+  # ✅ Master 分支 (AX210 必需)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -84,17 +84,15 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Violent-${{ env.FILE_DATE }}
-        name: N3061 全员暴力版 (全源码拉取) ${{ env.FILE_DATE }}
+        tag_name: N3061-GoFix-${{ env.FILE_DATE }}
+        name: N3061 最终修复版 (Go环境+混合源) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 N3061 暴力植入清单
-          - 🗡️ **iStore**: `linkease` 官方源码直拉
-          - 🗡️ **Docker**: `lisaac` 官方源码直拉
-          - 🗡️ **Tailscale**: `asvow` 源码直拉
-          - 🗡️ **AdGuard**: `rufengsuixing` 源码直拉
-          - 🗡️ **5G/SMS**: `FUjr` & `4IceG` 源码直拉
-          - 🚫 **NAS**: 已彻底剔除
-          - 🇨🇳 **语言**: 暴力强制汉化
+          ### 🔥 N3061 编译修复版
+          - 🛠️ **修复**: **强制升级 Go 语言环境** (解决 ADG 编译失败)
+          - 📦 **新增**: iStore (官方源), Tailscale, 5G拨号/短信
+          - 🛡️ **安全**: AdGuardHome, HomeProxy
+          - 🇨🇳 **语言**: 强制简体中文
+          - 💾 **存储**: 4GB 根分区 (防止空间不足)
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
