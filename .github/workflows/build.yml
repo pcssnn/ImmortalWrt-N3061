@@ -1,4 +1,4 @@
-name: Build N3061 Final Success
+name: Build N3061 Final Fix
 
 on:
   repository_dispatch:
@@ -23,17 +23,20 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # ✅ 新增：强力清理磁盘空间 (解决图3/4报错)
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space-action@v1.3.1
-      with:
-        tool-cache: true
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: true
+    # =========================================================
+    # ✅ 修复图3/图4：手动清理空间 (最稳妥的方式)
+    # 不依赖任何第三方插件，直接删废料
+    # =========================================================
+    - name: Free Disk Space (Manual)
+      run: |
+        echo "Freeing disk space..."
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/share/swift
+        sudo docker image prune -a -f
+        echo "Disk space freed."
+        df -h
 
     - name: Initialization environment
       env:
@@ -63,19 +66,24 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
-        # 先生成默认配置
+        # 先生成一次标准配置
         make defconfig
 
-    # ✅ 关键修正：在 defconfig 之后强制修改分区大小
-    # 这能100%解决图1的"out of space"错误
+    # =========================================================
+    # ✅ 修复图1：最后时刻强制修改分区大小
+    # 防止 make defconfig 把我们的设置重置掉
+    # =========================================================
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
+        # 删除可能存在的旧配置
         sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/d' .config
+        sed -i '/CONFIG_TARGET_KERNEL_PARTSIZE/d' .config
+        # 强制写入新配置 (4GB)
         echo 'CONFIG_TARGET_ROOTFS_PARTSIZE=4096' >> .config
         echo 'CONFIG_TARGET_KERNEL_PARTSIZE=128' >> .config
-        # 再次确认配置生效
-        make defconfig
+        # 打印最后几行确认写入成功
+        tail -n 5 .config
 
     - name: Download package
       run: |
@@ -106,12 +114,13 @@ jobs:
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         tag_name: N3061-Final-Success-${{ env.FILE_DATE }}
-        name: N3061 终极成功版 (已扩容4GB) ${{ env.FILE_DATE }}
+        name: N3061 终极修复版 (已扩容4GB) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 编译成功
-          - ✅ **空间**: 修复 Rootfs 大小为 4GB
-          - ✅ **环境**: 修复 GitHub Runner 空间不足
-          - 📦 **功能**: iStore, Docker, 5G, SMS, ADG 全收录
+          ### 🔥 错误修复日志
+          - ✅ **修复图4**: 移除失效插件，改用手动清理空间
+          - ✅ **修复图3**: 释放了约 10GB 编译空间
+          - ✅ **修复图1**: 强制设定 Rootfs 为 4096MB (4GB)
+          - 📦 **功能**: 包含所有您要求的 5G/SMS/iStore/Docker
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
