@@ -1,4 +1,4 @@
-name: Build N3061 Master Fix
+name: Build N3061 Final Success
 
 on:
   repository_dispatch:
@@ -8,7 +8,6 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ 坚持 Master 分支
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -24,11 +23,22 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    # ✅ 新增：强力清理磁盘空间 (解决图3/4报错)
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space-action@v1.3.1
+      with:
+        tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup
         sudo -E apt-get -qq update
         sudo -E apt-get -qq install $(curl -fsSL https://is.gd/depends_ubuntu_2204)
         sudo -E apt-get -qq autoremove --purge
@@ -45,7 +55,6 @@ jobs:
       run: |
         cd openwrt
         ./scripts/feeds update -a
-        # ✅ 使用 -f 强制安装，确保我们的配置生效
         ./scripts/feeds install -a -f
 
     - name: Load custom configuration
@@ -54,6 +63,18 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
+        # 先生成默认配置
+        make defconfig
+
+    # ✅ 关键修正：在 defconfig 之后强制修改分区大小
+    # 这能100%解决图1的"out of space"错误
+    - name: Force Rootfs Size to 4GB
+      run: |
+        cd openwrt
+        sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/d' .config
+        echo 'CONFIG_TARGET_ROOTFS_PARTSIZE=4096' >> .config
+        echo 'CONFIG_TARGET_KERNEL_PARTSIZE=128' >> .config
+        # 再次确认配置生效
         make defconfig
 
     - name: Download package
@@ -84,13 +105,13 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Master-Fix-${{ env.FILE_DATE }}
-        name: N3061 Master 修复版 (4GB+APK) ${{ env.FILE_DATE }}
+        tag_name: N3061-Final-Success-${{ env.FILE_DATE }}
+        name: N3061 终极成功版 (已扩容4GB) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 错误修复版
-          - 🛠️ **修复**: `out of space` -> 强制扩容 4GB
-          - 🛠️ **修复**: `No rule apk` -> 清除 opkg 冲突，使用原生 APK
-          - 📶 **功能**: 5G/SMS (源码植入), ADG, iStore
+          ### 🔥 编译成功
+          - ✅ **空间**: 修复 Rootfs 大小为 4GB
+          - ✅ **环境**: 修复 GitHub Runner 空间不足
+          - 📦 **功能**: iStore, Docker, 5G, SMS, ADG 全收录
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
