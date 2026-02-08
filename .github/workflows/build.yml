@@ -23,10 +23,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # =========================================================
-    # ✅ 修复图3/图4：手动清理空间 (最稳妥的方式)
-    # 不依赖任何第三方插件，直接删废料
-    # =========================================================
+    # ✅ 修复核心：手动清理空间 (不依赖任何插件，防止报错)
+    # 这一步能腾出 10GB+ 空间，解决 "No space left on device"
     - name: Free Disk Space (Manual)
       run: |
         echo "Freeing disk space..."
@@ -66,23 +64,19 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
-        # 先生成一次标准配置
+        # 先生成标准配置
         make defconfig
 
-    # =========================================================
-    # ✅ 修复图1：最后时刻强制修改分区大小
-    # 防止 make defconfig 把我们的设置重置掉
-    # =========================================================
+    # ✅ 修复核心：最后时刻强制修改分区大小
+    # 放在 make defconfig 之后，防止被系统重置
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
-        # 删除可能存在的旧配置
         sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/d' .config
         sed -i '/CONFIG_TARGET_KERNEL_PARTSIZE/d' .config
-        # 强制写入新配置 (4GB)
         echo 'CONFIG_TARGET_ROOTFS_PARTSIZE=4096' >> .config
         echo 'CONFIG_TARGET_KERNEL_PARTSIZE=128' >> .config
-        # 打印最后几行确认写入成功
+        # 再次检查
         tail -n 5 .config
 
     - name: Download package
@@ -113,14 +107,13 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Final-Success-${{ env.FILE_DATE }}
-        name: N3061 终极修复版 (已扩容4GB) ${{ env.FILE_DATE }}
+        tag_name: N3061-Final-Fix-${{ env.FILE_DATE }}
+        name: N3061 终极修复版 (已扩容4GB+清理空间) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 错误修复日志
-          - ✅ **修复图4**: 移除失效插件，改用手动清理空间
-          - ✅ **修复图3**: 释放了约 10GB 编译空间
-          - ✅ **修复图1**: 强制设定 Rootfs 为 4096MB (4GB)
-          - 📦 **功能**: 包含所有您要求的 5G/SMS/iStore/Docker
+          ### 🔥 修复日志
+          - ✅ **空间**: 手动清理环境，腾出 10GB 空间
+          - ✅ **分区**: 强制 4GB 根分区
+          - 📦 **功能**: iStore, 5G, SMS, Docker, ADG
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
