@@ -1,15 +1,14 @@
-name: Build N3061 Final GoFix
+name: Build N3061 Master Fix
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    # 每周五 20:00 自动编译
     - cron: '0 12 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ Master 分支 (AX210 必需)
+  # ✅ 坚持 Master 分支
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -46,7 +45,8 @@ jobs:
       run: |
         cd openwrt
         ./scripts/feeds update -a
-        ./scripts/feeds install -a
+        # ✅ 使用 -f 强制安装，确保我们的配置生效
+        ./scripts/feeds install -a -f
 
     - name: Load custom configuration
       run: |
@@ -84,15 +84,13 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-GoFix-${{ env.FILE_DATE }}
-        name: N3061 最终修复版 (Go环境+混合源) ${{ env.FILE_DATE }}
+        tag_name: N3061-Master-Fix-${{ env.FILE_DATE }}
+        name: N3061 Master 修复版 (4GB+APK) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 N3061 编译修复版
-          - 🛠️ **修复**: **强制升级 Go 语言环境** (解决 ADG 编译失败)
-          - 📦 **新增**: iStore (官方源), Tailscale, 5G拨号/短信
-          - 🛡️ **安全**: AdGuardHome, HomeProxy
-          - 🇨🇳 **语言**: 强制简体中文
-          - 💾 **存储**: 4GB 根分区 (防止空间不足)
+          ### 🔥 错误修复版
+          - 🛠️ **修复**: `out of space` -> 强制扩容 4GB
+          - 🛠️ **修复**: `No rule apk` -> 清除 opkg 冲突，使用原生 APK
+          - 📶 **功能**: 5G/SMS (源码植入), ADG, iStore
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
