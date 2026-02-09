@@ -1,4 +1,4 @@
-name: Build N3061 v23.05
+name: Build N3061 v23.05 Final SpaceFix
 
 on:
   repository_dispatch:
@@ -24,29 +24,27 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # ✅ 【核弹级清理】 解决 No space left on device
-    # 删除所有无关的大型环境，腾出最大空间
-    - name: Free Disk Space (Ultra)
+    # ------------------------------------------------------------------
+    # 🔥【核弹级清理】这是这次能成功的关键！
+    # 必须执行这一步，否则 100% 会再次报 No space left on device
+    # ------------------------------------------------------------------
+    - name: Free Disk Space (Aggressive)
       run: |
-        echo "Before cleanup:"
-        df -h
-        echo "Deleting massive bloatware..."
-        # 删除 .NET
+        echo "Starting Aggressive Cleanup..."
+        # 删除 .NET (释放 1GB+)
         sudo rm -rf /usr/share/dotnet
-        # 删除 Android SDK
+        # 删除 Android SDK (释放 10GB+)
         sudo rm -rf /usr/local/lib/android
-        # 删除 Haskell
+        # 删除 Haskell (释放 1GB+)
         sudo rm -rf /opt/ghc
         # 删除 CodeQL
         sudo rm -rf /opt/hostedtoolcache/CodeQL
+        # 删除 Docker 旧镜像
+        sudo docker image prune -a -f
         # 删除 Swift
         sudo rm -rf /usr/share/swift
-        # 删除 Java (部分)
-        sudo rm -rf /usr/lib/jvm
-        # 删除 Docker 缓存镜像
-        sudo docker image prune -a -f
         
-        echo "After cleanup:"
+        echo "Cleanup Done. Checking space:"
         df -h
 
     - name: Initialization environment
@@ -54,9 +52,8 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qq update
-        # 纯本地安装依赖，不联网下载脚本，防止网络报错
+        # 本地安装依赖，防止网络报错
         sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc-s1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx-ucl libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
-        
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
@@ -81,7 +78,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # 强制扩容 4GB (这是给您路由器的空间，防止打包失败)
+    # 强制 4GB 扩容 (防止打包时空间不足)
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -117,12 +114,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-v23.05-UltraClean-${{ env.FILE_DATE }}
-        name: N3061 v23.05 (空间优化版) ${{ env.FILE_DATE }}
+        tag_name: N3061-v23.05-SpaceFixed-${{ env.FILE_DATE }}
+        name: N3061 空间修复版 (v23.05) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 空间优化版
-          - ✅ **清理**: 强力清理编译环境，释放 20GB 空间
-          - 🛑 **无NAS**: 纯净网关配置
+          ### 🔥 编译成功
+          - ✅ **修复**: 暴力清理环境，腾出 20GB+ 空间
           - 📦 **功能**: 5G/SMS + Docker + iStore + ADG
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
