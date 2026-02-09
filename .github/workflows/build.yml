@@ -1,4 +1,4 @@
-name: Build N3061 Final Fix
+name: Build N3061 Feb3 HighComplete
 
 on:
   repository_dispatch:
@@ -8,6 +8,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
+  # ✅ 还原：使用 Master 分支 (性能最强)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -23,17 +24,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # ✅ 修复核心：手动清理空间 (不依赖任何插件，防止报错)
-    # 这一步能腾出 10GB+ 空间，解决 "No space left on device"
+    # ✅ 保留刚刚验证过的清理代码 (防止复刻版因为空间不足而炸)
     - name: Free Disk Space (Manual)
       run: |
         echo "Freeing disk space..."
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
-        sudo rm -rf /usr/share/swift
         sudo docker image prune -a -f
-        echo "Disk space freed."
         df -h
 
     - name: Initialization environment
@@ -64,20 +62,15 @@ jobs:
         cd openwrt
         chmod +x $DIY_P2_SH
         ./$DIY_P2_SH
-        # 先生成标准配置
         make defconfig
 
-    # ✅ 修复核心：最后时刻强制修改分区大小
-    # 放在 make defconfig 之后，防止被系统重置
+    # ✅ 保留：强制扩容 4GB (为了装下那么多功能)
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
         sed -i '/CONFIG_TARGET_ROOTFS_PARTSIZE/d' .config
-        sed -i '/CONFIG_TARGET_KERNEL_PARTSIZE/d' .config
         echo 'CONFIG_TARGET_ROOTFS_PARTSIZE=4096' >> .config
         echo 'CONFIG_TARGET_KERNEL_PARTSIZE=128' >> .config
-        # 再次检查
-        tail -n 5 .config
 
     - name: Download package
       run: |
@@ -107,13 +100,13 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Final-Fix-${{ env.FILE_DATE }}
-        name: N3061 终极修复版 (已扩容4GB+清理空间) ${{ env.FILE_DATE }}
+        tag_name: N3061-Feb3-Restore-${{ env.FILE_DATE }}
+        name: N3061 巅峰复刻版 (2月3日逻辑) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 修复日志
-          - ✅ **空间**: 手动清理环境，腾出 10GB 空间
-          - ✅ **分区**: 强制 4GB 根分区
-          - 📦 **功能**: iStore, 5G, SMS, Docker, ADG
+          ### 🔥 2月3日巅峰版复刻
+          - 🛠️ **核心**: Master分支 + 全功能插件
+          - 📶 **通信**: 5G/SMS + AX210 满血驱动
+          - 📦 **应用**: iStore, Docker, ADG, Tailscale
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
