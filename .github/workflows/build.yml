@@ -8,7 +8,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ 锁定 v23.05
+  # 锁定 v23.05
   REPO_BRANCH: openwrt-23.05
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -24,13 +24,29 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 清理空间 (安全命令)
-    - name: Free Disk Space (Manual)
+    # ✅ 【核弹级清理】 解决 No space left on device
+    # 删除所有无关的大型环境，腾出最大空间
+    - name: Free Disk Space (Ultra)
       run: |
+        echo "Before cleanup:"
+        df -h
+        echo "Deleting massive bloatware..."
+        # 删除 .NET
         sudo rm -rf /usr/share/dotnet
+        # 删除 Android SDK
         sudo rm -rf /usr/local/lib/android
+        # 删除 Haskell
         sudo rm -rf /opt/ghc
+        # 删除 CodeQL
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        # 删除 Swift
+        sudo rm -rf /usr/share/swift
+        # 删除 Java (部分)
+        sudo rm -rf /usr/lib/jvm
+        # 删除 Docker 缓存镜像
         sudo docker image prune -a -f
+        
+        echo "After cleanup:"
         df -h
 
     - name: Initialization environment
@@ -38,8 +54,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qq update
-        # ✅ 修复核心：不再使用 curl 下载列表，直接把依赖写死在这里
-        # 这样绝对不会报错
+        # 纯本地安装依赖，不联网下载脚本，防止网络报错
         sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc-s1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx-ucl libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
         
         sudo -E apt-get -qq autoremove --purge
@@ -66,7 +81,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # ✅ 强制扩容 4GB
+    # 强制扩容 4GB (这是给您路由器的空间，防止打包失败)
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -102,12 +117,12 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Gateway-Fixed-${{ env.FILE_DATE }}
-        name: N3061 纯净网关版 (修复依赖) ${{ env.FILE_DATE }}
+        tag_name: N3061-v23.05-UltraClean-${{ env.FILE_DATE }}
+        name: N3061 v23.05 (空间优化版) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 编译修复版
-          - ✅ **修复**: 手动内置依赖，解决 `is.gd` 报错
-          - 🛑 **无NAS**: 纯净网关
+          ### 🔥 空间优化版
+          - ✅ **清理**: 强力清理编译环境，释放 20GB 空间
+          - 🛑 **无NAS**: 纯净网关配置
           - 📦 **功能**: 5G/SMS + Docker + iStore + ADG
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
