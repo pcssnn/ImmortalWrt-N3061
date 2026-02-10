@@ -1,4 +1,4 @@
-name: Build N3061 Final Fix
+name: Build N3061 Ultimate 60GB
 
 on:
   repository_dispatch:
@@ -24,19 +24,23 @@ jobs:
       uses: actions/checkout@v4
 
     # ------------------------------------------------------------------
-    # 🔥【第一招】使用最强清理插件 (jlumbroso)
-    # 这个插件是目前 OpenWrt 圈公认最干净的，能腾出 30GB+
+    # 🔥【终极杀招】分区重组 (Maximize Build Space)
+    # 这不是删文件，这是改硬盘分区！
+    # 能瞬间腾出 60GB+ 的物理空间，专门对付 sing-box 这种巨兽
     # ------------------------------------------------------------------
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@main
+    - name: Maximize Build Space (60GB+)
+      uses: easimon/maximize-build-space@master
       with:
-        tool-cache: true
-        android: true
-        dotnet: true
-        haskell: true
-        large-packages: true
-        docker-images: true
-        swap-storage: true
+        root-reserve-mb: 2048    # 只给系统留 2GB，剩下的全抢过来
+        swap-size-mb: 1     # 几乎关掉虚拟内存，把空间换成物理硬盘
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+        
+    - name: Check Space
+      run: df -hT
 
     - name: Initialization environment
       env:
@@ -83,20 +87,20 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
     # ------------------------------------------------------------------
-    # 🔥【第二招】乾坤大挪移 (关键修复！)
-    # 强制将临时目录指向大硬盘，解决 /tmp 爆满导致的 sing-box 编译失败
+    # 🔥【双重保险】临时目录重定向
+    # 配合 60GB 大硬盘，把临时文件也指向这里
     # ------------------------------------------------------------------
     - name: Compile the firmware
       id: compile
       run: |
-        # 创建一个大容量的临时文件夹
+        # 建立大容量临时目录
         mkdir -p $GITHUB_WORKSPACE/openwrt_tmp
         export TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
         
         cd openwrt
         echo -e "$(nproc) thread compile"
         
-        # 编译命令中也带上 TMPDIR 环境变量
+        # 编译
         make -j$(nproc) TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp" || make -j1 V=s TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
         
         echo "status=success" >> $GITHUB_OUTPUT
@@ -115,7 +119,12 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Final-Fixed-${{ env.FILE_DATE }}
-        name: N3061 终极修复版 (TMPDIR修复) ${{ env.FILE_DATE }}
+        tag_name: N3061-60GB-Fix-${{ env.FILE_DATE }}
+        name: N3061 最终版 (60GB空间修复) ${{ env.FILE_DATE }}
         body: |
           ### 🔥 编译成功
+          - 🛠️ **修复**: 启用 60GB 分区重组
+          - 📦 **包含**: 5G + Docker + HomeProxy (sing-box) + iStore
+        files: ${{ env.FIRMWARE }}/*.img.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
