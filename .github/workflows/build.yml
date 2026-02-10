@@ -8,6 +8,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
+  # 坚持 Master 分支
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -21,14 +22,14 @@ jobs:
 
     steps:
     # ------------------------------------------------------------------
-    # 🔥【第一步】扩容 (参数修正版)
-    # 之前设置 2048 导致系统盘满了，现在改为 8192 (8GB) 给系统留足空间
-    # 这样剩下的 50GB+ 依然全部给编译用，达成完美平衡
+    # 🔥【黄金比例扩容】(严格执行您要求的 8GB+55GB)
+    # root-reserve-mb: 8192 -> 系统保留 8GB (防止 cpio 报错)
+    # 剩下的约 55GB+ -> 全部给编译 (防止 sing-box 炸盘)
     # ------------------------------------------------------------------
     - name: Maximize Build Space (Balanced)
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 8192    # ✅ 改为 8GB，防止 apt-get 报错
+        root-reserve-mb: 8192   # ✅ 锁定 8GB，绝不改动！
         swap-size-mb: 1
         remove-dotnet: 'true'
         remove-android: 'true'
@@ -36,17 +37,13 @@ jobs:
         remove-codeql: 'true'
         remove-docker-images: 'true'
 
-    # ------------------------------------------------------------------
-    # 🔥【第二步】Checkout
-    # ------------------------------------------------------------------
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 🔥【第三步】修复权限 (必须保留)
     - name: Fix Permissions
       run: |
         sudo chown -R runner:runner /home/runner
-        df -hT  # 打印一下磁盘情况，方便确认
+        df -hT
 
     - name: Initialization environment
       env:
@@ -92,10 +89,7 @@ jobs:
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
-    # ------------------------------------------------------------------
-    # 🔥【第四步】TMPDIR 再次确认
-    # 确保 sing-box 编译时的临时文件去大硬盘
-    # ------------------------------------------------------------------
+    # TMPDIR 优化 (双重保险)
     - name: Compile the firmware
       id: compile
       run: |
@@ -104,7 +98,6 @@ jobs:
         
         cd openwrt
         echo -e "$(nproc) thread compile"
-        
         make -j$(nproc) TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp" || make -j1 V=s TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
         
         echo "status=success" >> $GITHUB_OUTPUT
@@ -123,12 +116,14 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Final-Success-${{ env.FILE_DATE }}
-        name: N3061 8GB系统+55GB编译) ${{ env.FILE_DATE }}
+        tag_name: N3061-Master-GoldRatio-${{ env.FILE_DATE }}
+        name: N3061 Master 黄金比例 (中文+菜单修复) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 编译成功
-          - 🛠️ **策略**: 8GB 系统预留 + 55GB 编译扩容
-          - 📦 **包含**: 5G + Docker + HomeProxy + iStore
+          ### 🔥 Master 终极版
+          - ⚖️ **空间**: 8GB 系统 + 55GB 编译 (验证成功配置)
+          - 🇨🇳 **语言**: 强制简体中文
+          - 🛠️ **修复**: Docker (lisaac) + 菜单 (luci-compat)
+          - 📦 **包含**: iStore + QModem + SMS
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
