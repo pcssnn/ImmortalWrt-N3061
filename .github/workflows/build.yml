@@ -1,5 +1,4 @@
 name: Build N3061
-
 on:
   repository_dispatch:
   workflow_dispatch:
@@ -8,7 +7,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # 坚持 Master 分支
+  # ✅ 锁定 Master 分支 (内核 6.12)
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -22,9 +21,9 @@ jobs:
 
     steps:
     # ------------------------------------------------------------------
-    # 🔥【黄金比例扩容】(严格执行您要求的 8GB+55GB)
-    # root-reserve-mb: 8192 -> 系统保留 8GB (防止 cpio 报错)
-    # 剩下的约 55GB+ -> 全部给编译 (防止 sing-box 炸盘)
+    # 🔥【黄金比例扩容】(经过验证的唯一成功方案)
+    # root-reserve-mb: 8192 (8GB) -> 保证 apt-get 和 cpio 不报错
+    # 剩余 55GB+ -> 保证 sing-box 和 Docker 编译不炸盘
     # ------------------------------------------------------------------
     - name: Maximize Build Space (Balanced)
       uses: easimon/maximize-build-space@master
@@ -75,7 +74,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # 4GB 固件扩容
+    # 4GB 固件扩容 (双重保险，防止打包失败)
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -89,7 +88,7 @@ jobs:
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
-    # TMPDIR 优化 (双重保险)
+    # 🔥【编译优化】指定 TMPDIR 到大硬盘
     - name: Compile the firmware
       id: compile
       run: |
@@ -116,14 +115,14 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Master-GoldRatio-${{ env.FILE_DATE }}
-        name: N3061 Master 黄金比例 (中文+菜单修复) ${{ env.FILE_DATE }}
+        tag_name: N3061-Master-Final-${{ env.FILE_DATE }}
+        name: N3061 Master 完美终极版 (中文+全功能) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 Master 终极版
-          - ⚖️ **空间**: 8GB 系统 + 55GB 编译 (验证成功配置)
-          - 🇨🇳 **语言**: 强制简体中文
-          - 🛠️ **修复**: Docker (lisaac) + 菜单 (luci-compat)
-          - 📦 **包含**: iStore + QModem + SMS
+          ### 🔥 Master 终极修复清单
+          - 🇨🇳 **语言**: 强制简体中文 (源码固化)
+          - 🛠️ **修复**: Docker 红框报错 (使用 lisaac 源码)
+          - 🛠️ **修复**: 菜单缺失 (强制 luci-compat)
+          - 📦 **包含**: iStore + QModem + SMS + ADG
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
