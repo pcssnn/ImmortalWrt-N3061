@@ -10,11 +10,13 @@ echo 'src-git istore https://github.com/linkease/istore;master' >> feeds.conf.de
 echo 'src-git nas https://github.com/linkease/nas-packages.git;master' >> feeds.conf.default
 echo 'src-git ui https://github.com/linkease/istore-ui.git;master' >> feeds.conf.default
 
-# 3. 核心源码植入
+# 3. 核心源码植入 (package/custom 下优先级最高)
 mkdir -p package/custom
 
-# 🔥【Docker 修复】使用 lisaac 原作者源码
+# 🔥【Docker 修复】(解决红框报错的关键)
+# 先删除 feed 里可能有问题的版本
 rm -rf feeds/luci/applications/luci-app-dockerman
+# 拉取 lisaac 原作者的修复代码
 git clone https://github.com/lisaac/luci-app-dockerman.git package/custom/luci-app-dockerman
 git clone https://github.com/lisaac/luci-lib-docker.git package/custom/luci-lib-docker
 
