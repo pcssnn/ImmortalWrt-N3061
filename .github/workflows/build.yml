@@ -1,15 +1,14 @@
-name: Build N3061 Master Weekly
+name: Build N3061 Master MaxSpace
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
-    # ⏰【周更】每周五中午12点自动编译
     - cron: '0 12 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # ✅ 锁定 Master 分支 (内核 6.12, APK架构)
+  # 锁定 Master 分支
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -26,25 +25,30 @@ jobs:
       uses: actions/checkout@v4
 
     # ------------------------------------------------------------------
-    # 🔥【核弹级清理】必须执行，否则 Docker 编译必炸盘
+    # 🔥【黑洞级扩容】终极空间解决方案
+    # 使用专业插件修改磁盘分区，腾出 50GB+ 空间
+    # 彻底解决 sing-box 编译时的 "No space left" 报错
     # ------------------------------------------------------------------
-    - name: Free Disk Space (Aggressive)
-      run: |
-        echo "Starting Aggressive Cleanup..."
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        sudo docker image prune -a -f
-        sudo rm -rf /usr/share/swift
-        df -h
+    - name: Maximize Build Space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 2048    # 仅保留 2GB 给系统，其余全给编译
+        swap-size-mb: 1024       # 缩小虚拟内存
+        remove-dotnet: 'true'    # 删除 .NET
+        remove-android: 'true'   # 删除 Android
+        remove-haskell: 'true'   # 删除 Haskell
+        remove-codeql: 'true'    # 删除 CodeQL
+        remove-docker-images: 'true' # 删除 Docker 镜像
+        
+    - name: Check Disk Space
+      run: df -hT
 
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qq update
-        # 🔥【本地依赖】防止 is.gd 网络报错
+        # 本地安装依赖，防止网络报错
         sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc-s1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx-ucl libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
@@ -70,7 +74,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # 强制 4GB 扩容 (防止打包失败)
+    # 4GB 扩容
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -106,14 +110,12 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Weekly-Master-${{ env.FILE_DATE }}
-        name: N3061 周更满血版 (APK架构) ${{ env.FILE_DATE }}
+        tag_name: N3061-Master-MaxSpace-${{ env.FILE_DATE }}
+        name: N3061 Master 满血版 (扩容修复) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 N3061 Master 旗舰版
-          - 📅 **机制**: 每周五自动编译 (APK架构)
-          - 🚀 **内核**: Linux 6.12 (原生AX210)
-          - 💎 **核心**: 5G QModem + SMS + iStore
-          - 🛡️ **网关**: HomeProxy + AdGuard + Tailscale
+          ### 🔥 编译成功
+          - 🛠️ **修复**: 启用黑洞级扩容 (50GB+ 空间)
+          - 📦 **包含**: 5G + Docker + HomeProxy (sing-box)
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
