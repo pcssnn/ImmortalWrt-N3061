@@ -21,13 +21,14 @@ jobs:
 
     steps:
     # ------------------------------------------------------------------
-    # 🔥【第一步】先扩容！
-    # 必须最先运行，先把 60GB 空间腾出来，否则后面的文件会被覆盖
+    # 🔥【第一步】扩容 (参数修正版)
+    # 之前设置 2048 导致系统盘满了，现在改为 8192 (8GB) 给系统留足空间
+    # 这样剩下的 50GB+ 依然全部给编译用，达成完美平衡
     # ------------------------------------------------------------------
-    - name: Maximize Build Space (60GB+)
+    - name: Maximize Build Space (Balanced)
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 2048
+        root-reserve-mb: 8192    # ✅ 改为 8GB，防止 apt-get 报错
         swap-size-mb: 1
         remove-dotnet: 'true'
         remove-android: 'true'
@@ -36,18 +37,16 @@ jobs:
         remove-docker-images: 'true'
 
     # ------------------------------------------------------------------
-    # 🔥【第二步】再 Checkout！
-    # 扩容完成后再下载脚本，确保它们存在于大硬盘上，且权限正确
+    # 🔥【第二步】Checkout
     # ------------------------------------------------------------------
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 🔥【额外保险】强制修复权限
-    # 防止扩容插件把目录权限改成 root，导致 git clone 失败
+    # 🔥【第三步】修复权限 (必须保留)
     - name: Fix Permissions
       run: |
         sudo chown -R runner:runner /home/runner
-        df -hT
+        df -hT  # 打印一下磁盘情况，方便确认
 
     - name: Initialization environment
       env:
@@ -79,7 +78,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # 4GB 扩容
+    # 4GB 固件扩容
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -94,8 +93,8 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
     # ------------------------------------------------------------------
-    # 🔥【第三步】指定 TMPDIR
-    # 确保 sing-box 编译时的临时文件也写到 60GB 大硬盘里
+    # 🔥【第四步】TMPDIR 再次确认
+    # 确保 sing-box 编译时的临时文件去大硬盘
     # ------------------------------------------------------------------
     - name: Compile the firmware
       id: compile
@@ -124,11 +123,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Success-${{ env.FILE_DATE }}
-        name: N3061 终极成功版 (60GB+权限修补) ${{ env.FILE_DATE }}
+        tag_name: N3061-Final-Success-${{ env.FILE_DATE }}
+        name: N3061 8GB系统+55GB编译) ${{ env.FILE_DATE }}
         body: |
           ### 🔥 编译成功
-          - 🛠️ **修复**: 调整扩容顺序 + 修复 Clone 权限
+          - 🛠️ **策略**: 8GB 系统预留 + 55GB 编译扩容
           - 📦 **包含**: 5G + Docker + HomeProxy + iStore
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
