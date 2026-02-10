@@ -1,15 +1,16 @@
-name: Build N3061 v23.05 Final SpaceFix
+name: Build N3061 Master Weekly
 
 on:
   repository_dispatch:
   workflow_dispatch:
   schedule:
+    # ⏰【周更】每周五中午12点自动编译
     - cron: '0 12 * * 5'
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # 锁定 v23.05
-  REPO_BRANCH: openwrt-23.05
+  # ✅ 锁定 Master 分支 (内核 6.12, APK架构)
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -25,26 +26,17 @@ jobs:
       uses: actions/checkout@v4
 
     # ------------------------------------------------------------------
-    # 🔥【核弹级清理】这是这次能成功的关键！
-    # 必须执行这一步，否则 100% 会再次报 No space left on device
+    # 🔥【核弹级清理】必须执行，否则 Docker 编译必炸盘
     # ------------------------------------------------------------------
     - name: Free Disk Space (Aggressive)
       run: |
         echo "Starting Aggressive Cleanup..."
-        # 删除 .NET (释放 1GB+)
         sudo rm -rf /usr/share/dotnet
-        # 删除 Android SDK (释放 10GB+)
         sudo rm -rf /usr/local/lib/android
-        # 删除 Haskell (释放 1GB+)
         sudo rm -rf /opt/ghc
-        # 删除 CodeQL
         sudo rm -rf /opt/hostedtoolcache/CodeQL
-        # 删除 Docker 旧镜像
         sudo docker image prune -a -f
-        # 删除 Swift
         sudo rm -rf /usr/share/swift
-        
-        echo "Cleanup Done. Checking space:"
         df -h
 
     - name: Initialization environment
@@ -52,7 +44,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qq update
-        # 本地安装依赖，防止网络报错
+        # 🔥【本地依赖】防止 is.gd 网络报错
         sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc-s1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx-ucl libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
@@ -78,7 +70,7 @@ jobs:
         ./$DIY_P2_SH
         make defconfig
 
-    # 强制 4GB 扩容 (防止打包时空间不足)
+    # 强制 4GB 扩容 (防止打包失败)
     - name: Force Rootfs Size to 4GB
       run: |
         cd openwrt
@@ -114,12 +106,14 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-v23.05-SpaceFixed-${{ env.FILE_DATE }}
-        name: N3061 空间修复版 (v23.05) ${{ env.FILE_DATE }}
+        tag_name: N3061-Weekly-Master-${{ env.FILE_DATE }}
+        name: N3061 周更满血版 (APK架构) ${{ env.FILE_DATE }}
         body: |
-          ### 🔥 编译成功
-          - ✅ **修复**: 暴力清理环境，腾出 20GB+ 空间
-          - 📦 **功能**: 5G/SMS + Docker + iStore + ADG
+          ### 🔥 N3061 Master 旗舰版
+          - 📅 **机制**: 每周五自动编译 (APK架构)
+          - 🚀 **内核**: Linux 6.12 (原生AX210)
+          - 💎 **核心**: 5G QModem + SMS + iStore
+          - 🛡️ **网关**: HomeProxy + AdGuard + Tailscale
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
