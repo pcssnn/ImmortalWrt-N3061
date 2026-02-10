@@ -1,4 +1,4 @@
-name: Build N3061 Master MaxSpace
+name: Build N3061 Final Fix
 
 on:
   repository_dispatch:
@@ -8,7 +8,6 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  # 锁定 Master 分支
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
@@ -25,30 +24,25 @@ jobs:
       uses: actions/checkout@v4
 
     # ------------------------------------------------------------------
-    # 🔥【黑洞级扩容】终极空间解决方案
-    # 使用专业插件修改磁盘分区，腾出 50GB+ 空间
-    # 彻底解决 sing-box 编译时的 "No space left" 报错
+    # 🔥【第一招】使用最强清理插件 (jlumbroso)
+    # 这个插件是目前 OpenWrt 圈公认最干净的，能腾出 30GB+
     # ------------------------------------------------------------------
-    - name: Maximize Build Space
-      uses: easimon/maximize-build-space@master
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space@main
       with:
-        root-reserve-mb: 2048    # 仅保留 2GB 给系统，其余全给编译
-        swap-size-mb: 1024       # 缩小虚拟内存
-        remove-dotnet: 'true'    # 删除 .NET
-        remove-android: 'true'   # 删除 Android
-        remove-haskell: 'true'   # 删除 Haskell
-        remove-codeql: 'true'    # 删除 CodeQL
-        remove-docker-images: 'true' # 删除 Docker 镜像
-        
-    - name: Check Disk Space
-      run: df -hT
+        tool-cache: true
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
 
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qq update
-        # 本地安装依赖，防止网络报错
         sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc-s1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx-ucl libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
@@ -88,12 +82,23 @@ jobs:
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
+    # ------------------------------------------------------------------
+    # 🔥【第二招】乾坤大挪移 (关键修复！)
+    # 强制将临时目录指向大硬盘，解决 /tmp 爆满导致的 sing-box 编译失败
+    # ------------------------------------------------------------------
     - name: Compile the firmware
       id: compile
       run: |
+        # 创建一个大容量的临时文件夹
+        mkdir -p $GITHUB_WORKSPACE/openwrt_tmp
+        export TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
+        
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        
+        # 编译命令中也带上 TMPDIR 环境变量
+        make -j$(nproc) TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp" || make -j1 V=s TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
+        
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
@@ -110,12 +115,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-Master-MaxSpace-${{ env.FILE_DATE }}
-        name: N3061 Master 满血版 (扩容修复) ${{ env.FILE_DATE }}
+        tag_name: N3061-Final-Fixed-${{ env.FILE_DATE }}
+        name: N3061 终极修复版 (TMPDIR修复) ${{ env.FILE_DATE }}
         body: |
           ### 🔥 编译成功
-          - 🛠️ **修复**: 启用黑洞级扩容 (50GB+ 空间)
-          - 📦 **包含**: 5G + Docker + HomeProxy (sing-box)
-        files: ${{ env.FIRMWARE }}/*.img.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
