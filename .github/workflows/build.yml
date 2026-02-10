@@ -1,4 +1,4 @@
-name: Build N3061 Ultimate 60GB
+name: Build N3061
 
 on:
   repository_dispatch:
@@ -20,27 +20,34 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     # ------------------------------------------------------------------
-    # 🔥【终极杀招】分区重组 (Maximize Build Space)
-    # 这不是删文件，这是改硬盘分区！
-    # 能瞬间腾出 60GB+ 的物理空间，专门对付 sing-box 这种巨兽
+    # 🔥【第一步】先扩容！
+    # 必须最先运行，先把 60GB 空间腾出来，否则后面的文件会被覆盖
     # ------------------------------------------------------------------
     - name: Maximize Build Space (60GB+)
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 2048    # 只给系统留 2GB，剩下的全抢过来
-        swap-size-mb: 1     # 几乎关掉虚拟内存，把空间换成物理硬盘
+        root-reserve-mb: 2048
+        swap-size-mb: 1
         remove-dotnet: 'true'
         remove-android: 'true'
         remove-haskell: 'true'
         remove-codeql: 'true'
         remove-docker-images: 'true'
-        
-    - name: Check Space
-      run: df -hT
+
+    # ------------------------------------------------------------------
+    # 🔥【第二步】再 Checkout！
+    # 扩容完成后再下载脚本，确保它们存在于大硬盘上，且权限正确
+    # ------------------------------------------------------------------
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 🔥【额外保险】强制修复权限
+    # 防止扩容插件把目录权限改成 root，导致 git clone 失败
+    - name: Fix Permissions
+      run: |
+        sudo chown -R runner:runner /home/runner
+        df -hT
 
     - name: Initialization environment
       env:
@@ -87,20 +94,18 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
     # ------------------------------------------------------------------
-    # 🔥【双重保险】临时目录重定向
-    # 配合 60GB 大硬盘，把临时文件也指向这里
+    # 🔥【第三步】指定 TMPDIR
+    # 确保 sing-box 编译时的临时文件也写到 60GB 大硬盘里
     # ------------------------------------------------------------------
     - name: Compile the firmware
       id: compile
       run: |
-        # 建立大容量临时目录
         mkdir -p $GITHUB_WORKSPACE/openwrt_tmp
         export TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
         
         cd openwrt
         echo -e "$(nproc) thread compile"
         
-        # 编译
         make -j$(nproc) TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp" || make -j1 V=s TMPDIR="$GITHUB_WORKSPACE/openwrt_tmp"
         
         echo "status=success" >> $GITHUB_OUTPUT
@@ -119,12 +124,12 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        tag_name: N3061-60GB-Fix-${{ env.FILE_DATE }}
-        name: N3061 最终版 (60GB空间修复) ${{ env.FILE_DATE }}
+        tag_name: N3061-Success-${{ env.FILE_DATE }}
+        name: N3061 终极成功版 (60GB+权限修补) ${{ env.FILE_DATE }}
         body: |
           ### 🔥 编译成功
-          - 🛠️ **修复**: 启用 60GB 分区重组
-          - 📦 **包含**: 5G + Docker + HomeProxy (sing-box) + iStore
+          - 🛠️ **修复**: 调整扩容顺序 + 修复 Clone 权限
+          - 📦 **包含**: 5G + Docker + HomeProxy + iStore
         files: ${{ env.FIRMWARE }}/*.img.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
